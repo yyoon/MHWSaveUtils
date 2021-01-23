@@ -95,7 +95,14 @@ namespace MHWSaveUtils
 
     public static class MasterData
     {
+        private static readonly string DefaultLanguage = "eng";
+
         private static async Task LoadJewels(HttpClient httpClient)
+        {
+            await LoadJewels(httpClient, DefaultLanguage);
+        }
+
+        private static async Task LoadJewels(HttpClient httpClient, string language)
         {
             string jewelsJsonString = await httpClient.GetStringAsync("https://raw.githubusercontent.com/TanukiSharp/MHWMasterDataUtils/master/MHWMasterDataUtils.Exporter/data/jewels.json");
 
@@ -105,7 +112,7 @@ namespace MHWSaveUtils
 
             foreach (JObject jewelObject in jewelsArray)
             {
-                string name = jewelObject["name"]["eng"].Value<string>();
+                string name = jewelObject["name"][language].Value<string>();
                 uint id = jewelObject["id"].Value<uint>();
                 uint equipmentId = jewelObject["equipmentId"].Value<uint>();
 
@@ -117,6 +124,11 @@ namespace MHWSaveUtils
 
         private static async Task<ReadOnlyDictionary<uint, EquipmentInfo>> LoadEquipmentsFile(HttpClient httpClient, string type, string idPropertyName)
         {
+            return await LoadEquipmentsFile(httpClient, type, idPropertyName, DefaultLanguage);
+        }
+
+        private static async Task<ReadOnlyDictionary<uint, EquipmentInfo>> LoadEquipmentsFile(HttpClient httpClient, string type, string idPropertyName, string language)
+        {
             string url = $"https://raw.githubusercontent.com/TanukiSharp/MHWMasterDataUtils/master/MHWMasterDataUtils.Exporter/data/{type}.json";
 
             string equipmentsJsonString = await httpClient.GetStringAsync(url);
@@ -127,7 +139,7 @@ namespace MHWSaveUtils
 
             foreach (JObject equipmentObject in equipmentsArray)
             {
-                string name = equipmentObject["name"]["eng"].Value<string>();
+                string name = equipmentObject["name"][language].Value<string>();
                 uint id = equipmentObject[idPropertyName].Value<uint>();
 
                 equipments.Add(id, new EquipmentInfo(name, id));
@@ -138,14 +150,19 @@ namespace MHWSaveUtils
 
         private static async Task LoadArmorPieces(HttpClient httpClient)
         {
-            const string isPropertyName = "setGroup";
+            await LoadArmorPieces(httpClient, DefaultLanguage);
+        }
+
+        private static async Task LoadArmorPieces(HttpClient httpClient, string language)
+        {
+            const string idPropertyName = "setGroup";
 
             ReadOnlyDictionary<uint, EquipmentInfo>[] result = await Task.WhenAll(
-                LoadEquipmentsFile(httpClient, "heads", isPropertyName),
-                LoadEquipmentsFile(httpClient, "chests", isPropertyName),
-                LoadEquipmentsFile(httpClient, "arms", isPropertyName),
-                LoadEquipmentsFile(httpClient, "waists", isPropertyName),
-                LoadEquipmentsFile(httpClient, "legs", isPropertyName)
+                LoadEquipmentsFile(httpClient, "heads", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "chests", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "arms", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "waists", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "legs", idPropertyName, language)
             );
 
             ArmorPieces = new ReadOnlyCollection<ReadOnlyDictionary<uint, EquipmentInfo>>(result);
@@ -153,23 +170,28 @@ namespace MHWSaveUtils
 
         private static async Task LoadWeapons(HttpClient httpClient)
         {
+            await LoadWeapons(httpClient, DefaultLanguage);
+        }
+
+        private static async Task LoadWeapons(HttpClient httpClient, string language)
+        {
             const string idPropertyName = "sortOrder";
 
             ReadOnlyDictionary<uint, EquipmentInfo>[] result = await Task.WhenAll(
-                LoadEquipmentsFile(httpClient, "great-swords", idPropertyName),
-                LoadEquipmentsFile(httpClient, "sword-and-shields", idPropertyName),
-                LoadEquipmentsFile(httpClient, "dual-blades", idPropertyName),
-                LoadEquipmentsFile(httpClient, "long-swords", idPropertyName),
-                LoadEquipmentsFile(httpClient, "hammers", idPropertyName),
-                LoadEquipmentsFile(httpClient, "hunting-horns", idPropertyName),
-                LoadEquipmentsFile(httpClient, "lances", idPropertyName),
-                LoadEquipmentsFile(httpClient, "gunlances", idPropertyName),
-                LoadEquipmentsFile(httpClient, "switch-axes", idPropertyName),
-                LoadEquipmentsFile(httpClient, "charge-blades", idPropertyName),
-                LoadEquipmentsFile(httpClient, "insect-glaives", idPropertyName),
-                LoadEquipmentsFile(httpClient, "bows", idPropertyName),
-                LoadEquipmentsFile(httpClient, "heavy-bowguns", idPropertyName),
-                LoadEquipmentsFile(httpClient, "light-bowguns", idPropertyName)
+                LoadEquipmentsFile(httpClient, "great-swords", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "sword-and-shields", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "dual-blades", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "long-swords", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "hammers", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "hunting-horns", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "lances", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "gunlances", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "switch-axes", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "charge-blades", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "insect-glaives", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "bows", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "heavy-bowguns", idPropertyName, language),
+                LoadEquipmentsFile(httpClient, "light-bowguns", idPropertyName, language)
             );
 
             Weapons = new ReadOnlyCollection<ReadOnlyDictionary<uint, EquipmentInfo>>(result);
@@ -177,18 +199,28 @@ namespace MHWSaveUtils
 
         private static async Task LoadCharms(HttpClient httpClient)
         {
-            Charms = await LoadEquipmentsFile(httpClient, "charms", "setGroup");
+            await LoadCharms(httpClient, DefaultLanguage);
+        }
+
+        private static async Task LoadCharms(HttpClient httpClient, string language)
+        {
+            Charms = await LoadEquipmentsFile(httpClient, "charms", "setGroup", language);
         }
 
         public static async Task Load()
         {
+            await Load(DefaultLanguage);
+        }
+
+        public static async Task Load(string language)
+        {
             using (var httpClient = new HttpClient())
             {
                 await Task.WhenAll(
-                    LoadJewels(httpClient),
-                    LoadArmorPieces(httpClient),
-                    LoadCharms(httpClient),
-                    LoadWeapons(httpClient)
+                    LoadJewels(httpClient, language),
+                    LoadArmorPieces(httpClient, language),
+                    LoadCharms(httpClient, language),
+                    LoadWeapons(httpClient, language)
                 );
             }
         }
